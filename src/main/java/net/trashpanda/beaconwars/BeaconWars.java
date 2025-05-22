@@ -1,4 +1,4 @@
-package net.trrashpanda.beaconwars;
+package net.trashpanda.beaconwars;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
