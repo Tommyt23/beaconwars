@@ -29,6 +29,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.trashpanda.beaconwars.util.GamemodeStateManager;
 import net.trashpanda.beaconwars.util.PendingGamemodeChangeManager;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,35 +112,38 @@ public class BaseBeaconBlock extends Block {
 
     @Override
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        // Only send messages if it's a ServerPlayer
         if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] playerWillDestroy called for block at " + pos.toString() + " by player " + serverPlayer.getName().getString()));
 
-            // FIX: Removed serverPlayer.isSleepingLongEnough() as it's not relevant for custom spawn setting
-            if (!level.isClientSide) {
-                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Server-side code executing."));
+            // Only apply special logic if Beacon Wars gamemode is active
+            if (GamemodeStateManager.isBeaconWarsGamemodeActive()) {
+                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Beacon Wars Gamemode is ACTIVE. Checking spawn point."));
 
-                // Get the player's current respawn dimension and position
-                ResourceKey<Level> respawnDim = serverPlayer.getRespawnDimension();
-                BlockPos respawnPos = serverPlayer.getRespawnPosition();
+                if (!level.isClientSide) {
+                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Server-side code executing."));
 
-                // Now, check if both are present AND if they match the current block's dimension and position
-                if (respawnDim != null && respawnDim == level.dimension() &&
-                        respawnPos != null && respawnPos.equals(pos)) {
+                    ResourceKey<Level> respawnDim = serverPlayer.getRespawnDimension();
+                    BlockPos respawnPos = serverPlayer.getRespawnPosition();
 
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed IS player's current respawn point."));
-                    serverPlayer.setRespawnPosition(null, null, 0.0F, false, false);
-                    serverPlayer.displayClientMessage(Component.translatable("block.minecraft.clear_spawn"), false);
+                    if (respawnDim != null && respawnDim == level.dimension() &&
+                            respawnPos != null && respawnPos.equals(pos)) {
 
-                    PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SPECTATOR); // Change to desired gamemode
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Called addPendingChange."));
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed IS player's current respawn point."));
+                        serverPlayer.setRespawnPosition(null, null, 0.0F, false, false);
+                        serverPlayer.displayClientMessage(Component.translatable("block.minecraft.clear_spawn"), false);
+
+                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SPECTATOR);
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Called addPendingChange."));
+                    } else {
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed is NOT player's current respawn point or is missing info."));
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnDim: " + (respawnDim != null ? respawnDim.location() : "N/A") + ", CurrentDim: " + level.dimension().location()));
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnPos: " + (respawnPos != null ? respawnPos.toString() : "N/A") + ", CurrentPos: " + pos.toString()));
+                    }
                 } else {
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed is NOT player's current respawn point or is missing info."));
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnDim: " + (respawnDim != null ? respawnDim.location() : "N/A") + ", CurrentDim: " + level.dimension().location()));
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnPos: " + (respawnPos != null ? respawnPos.toString() : "N/A") + ", CurrentPos: " + pos.toString()));
+                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Client-side code (not processing spawn logic)."));
                 }
             } else {
-                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Client-side code (not processing spawn logic)."));
+                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Beacon Wars Gamemode is INACTIVE. Skipping special logic."));
             }
         }
         super.playerWillDestroy(level, pos, state, player);
