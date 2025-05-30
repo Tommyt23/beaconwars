@@ -19,8 +19,8 @@ public class ModBlocks {
             () -> new BaseBeaconBlock(BlockBehaviour.Properties.copy(Blocks.STONE)
                     .strength(6.0f) // Set its hardness/strength
                     .requiresCorrectToolForDrops() // Make it require the correct tool to drop items
-                    .mapColor(MapColor.COLOR_RED) // Give it a distinct color for testing
                     .noLootTable() // Keep this if you want to handle drops via data generation
+
             ));
 
     public static void register(IEventBus eventBus) {
