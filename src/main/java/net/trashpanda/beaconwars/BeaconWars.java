@@ -46,6 +46,7 @@ public class BeaconWars {
 
         // Register to the main MinecraftForge.EVENT_BUS for events like RegisterCommandsEvent
         MinecraftForge.EVENT_BUS.register(this); // This line is correct for its purpose
+        MinecraftForge.EVENT_BUS.register(new net.trashpanda.beaconwars.events.BlockEventHandler());
 
         modEventBus.addListener(this::addCreative);
     }

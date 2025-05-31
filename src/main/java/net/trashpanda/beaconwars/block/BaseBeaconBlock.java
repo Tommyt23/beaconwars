@@ -18,6 +18,10 @@ import net.minecraft.world.inventory.CraftingMenu;
 
 import net.minecraft.world.level.GameType; // If you still need this
 import net.minecraft.resources.ResourceKey; // If you still need this
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.trashpanda.beaconwars.ModItems.ModItems;
+import net.trashpanda.beaconwars.menu.AlwaysValidCraftingMenu;
 import net.trashpanda.beaconwars.util.PendingGamemodeChangeManager; // If you still need this
 import net.trashpanda.beaconwars.util.GamemodeStateManager; // If you still need this
 
@@ -49,7 +53,7 @@ public class BaseBeaconBlock extends Block {
                         serverPlayer.setRespawnPosition(null, null, 0.0F, false, false);
                         serverPlayer.displayClientMessage(Component.translatable("block.minecraft.clear_spawn"), false);
 
-                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SURVIVAL);
+                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SPECTATOR);
                         serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Called addPendingChange."));
                     } else {
                         serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed is NOT player's current respawn point or is missing info."));
@@ -65,7 +69,6 @@ public class BaseBeaconBlock extends Block {
         }
         super.playerWillDestroy(level, pos, state, player);
     }
-
     // --- NEW METHOD TO HANDLE RIGHT-CLICK INTERACTION ---
     @Override
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, net.minecraft.world.phys.BlockHitResult pHit) {
@@ -74,7 +77,7 @@ public class BaseBeaconBlock extends Block {
                 MenuProvider containerProvider = new SimpleMenuProvider((id, inventory, player) -> {
                     // This creates a standard 3x3 crafting grid menu
                     // ContainerLevelAccess.create(pLevel, pPos) links it to the block's position
-                    return new CraftingMenu(id, inventory, ContainerLevelAccess.create(pLevel, pPos));
+                    return new AlwaysValidCraftingMenu(id, inventory, ContainerLevelAccess.create(pLevel, pPos));
                 }, Component.translatable("container.crafting")); // Title for the crafting menu
 
                 serverPlayer.openMenu(containerProvider);

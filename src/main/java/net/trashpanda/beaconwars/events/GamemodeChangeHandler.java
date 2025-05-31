@@ -72,11 +72,15 @@ public class GamemodeChangeHandler {
 
                 if (currentPlayerGamemode != targetGameType) {
                     serverPlayer.sendSystemMessage(Component.literal("DEBUG: [RespawnHandler] Changing gamemode for " + serverPlayer.getName().getString() + " to " + targetGameType.getName()));
-                    serverPlayer.setGameMode(targetGameType);
-                    serverPlayer.sendSystemMessage(Component.literal("Your gamemode has been changed to " + targetGameType.getName() + "."));
-                    PendingGamemodeChangeManager.removePendingChange(serverPlayer);
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [RespawnHandler] Gamemode changed and removed pending change."));
-                } else {
+
+                    serverPlayer.getServer().execute(() -> {
+                        serverPlayer.setGameMode(targetGameType);
+                        serverPlayer.sendSystemMessage(Component.literal("Your gamemode has been changed to " + targetGameType.getName() + "."));
+                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [RespawnHandler] Gamemode changed inside scheduled task."));
+                        PendingGamemodeChangeManager.removePendingChange(serverPlayer);
+                    });
+                }
+                else {
                     serverPlayer.sendSystemMessage(Component.literal("DEBUG: [RespawnHandler] Player " + serverPlayer.getName().getString() + " is already in target gamemode (" + targetGameType.getName() + "), not changing."));
                     PendingGamemodeChangeManager.removePendingChange(serverPlayer);
                     serverPlayer.sendSystemMessage(Component.literal("DEBUG: [RespawnHandler] Removed pending change (already in target gamemode)."));
