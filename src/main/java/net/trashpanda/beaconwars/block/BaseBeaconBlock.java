@@ -1,121 +1,38 @@
+// src/main/java/net/trashpanda/beaconwars/block/BaseBeaconBlock.java
 package net.trashpanda.beaconwars.block;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks; // For accessing the vanilla crafting table block
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.CraftingMenu;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import net.trashpanda.beaconwars.util.GamemodeStateManager;
-import net.trashpanda.beaconwars.util.PendingGamemodeChangeManager;
-import org.jetbrains.annotations.Nullable;
 
-// NEW IMPORT: ResourceKey
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.GameType; // If you still need this
+import net.minecraft.resources.ResourceKey; // If you still need this
+import net.trashpanda.beaconwars.util.PendingGamemodeChangeManager; // If you still need this
+import net.trashpanda.beaconwars.util.GamemodeStateManager; // If you still need this
 
-import java.util.Optional;
+// (Other imports as needed)
 
 public class BaseBeaconBlock extends Block {
-
-    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    public static final BooleanProperty OCCUPIED = BlockStateProperties.OCCUPIED;
-
-    public BaseBeaconBlock(Properties properties) {
-        super(properties);
-        this.registerDefaultState(this.defaultBlockState() // <-- CORRECT
-                .setValue(FACING, Direction.NORTH)
-                .setValue(OCCUPIED, false));
-    }
-
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, OCCUPIED);
-    }
-
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!level.isClientSide) {
-            MenuProvider menuProvider = new SimpleMenuProvider(
-                    (id, playerInventory, playerEntity) -> new CraftingMenu(id, playerInventory, ContainerLevelAccess.create(level, pos)),
-                    Component.translatable("container.crafting")
-            );
-            player.openMenu(menuProvider);
-        }
-        return InteractionResult.SUCCESS;
-    }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        super.setPlacedBy(level, pos, state, placer, stack);
-        if (!level.isClientSide && placer instanceof Player player) {
-            if (player instanceof ServerPlayer serverPlayer) {
-                // FIX: Add level.dimension() as the first argument
-                serverPlayer.setRespawnPosition(level.dimension(), pos, 0.0F, false, true); // Corrected signature
-                serverPlayer.displayClientMessage(Component.translatable("block.minecraft.set_spawn"), false);
-
-                level.setBlock(pos, state.setValue(OCCUPIED, true), 3);
-            }
-        }
-    }
-
-    //@Override
-    public boolean isBed(BlockState state, LevelReader level, BlockPos pos, @Nullable Entity entity) {
-        return true;
-    }
-
-    //@Override
-    public boolean sleepsIn(BlockState state, LevelReader level, BlockPos pos, @Nullable Entity entity) {
-        return false;
-    }
-
-    @Nullable
-    @Override
-    public Optional<Vec3> getRespawnPosition(BlockState state, EntityType<?> type, LevelReader level, BlockPos pos, float orientation, @Nullable LivingEntity entity) {
-        // Return your desired position wrapped in Optional.of()
-        return Optional.of(new Vec3(pos.getX() + 0.5D, pos.getY() + 1.0D, pos.getZ() + 0.5D));
-    }
-
-    @Override
-    public void setBedOccupied(BlockState state, Level level, BlockPos pos, LivingEntity sleeper, boolean occupied) {
-        if (!level.isClientSide) {
-            level.setBlock(pos, state.setValue(OCCUPIED, occupied), 3);
-        }
-    }
-
-    //@Override
-    public void onRespawn(BlockState state, ServerLevel level, BlockPos pos, LivingEntity sleeper) {
-        // Optional: Add custom logic here
+    public BaseBeaconBlock(Properties pProperties) {
+        super(pProperties);
     }
 
     @Override
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
         if (player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] playerWillDestroy called for block at " + pos.toString() + " by player " + serverPlayer.getName().getString()));
+            System.out.println("DEBUG: [BeaconBlock] playerWillDestroy called for block at " + pos.toString() + " by player " + serverPlayer.getName().getString());
 
-            // Only apply special logic if Beacon Wars gamemode is active
             if (GamemodeStateManager.isBeaconWarsGamemodeActive()) {
                 serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Beacon Wars Gamemode is ACTIVE. Checking spawn point."));
 
@@ -132,7 +49,7 @@ public class BaseBeaconBlock extends Block {
                         serverPlayer.setRespawnPosition(null, null, 0.0F, false, false);
                         serverPlayer.displayClientMessage(Component.translatable("block.minecraft.clear_spawn"), false);
 
-                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SPECTATOR);
+                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SURVIVAL);
                         serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Called addPendingChange."));
                     } else {
                         serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed is NOT player's current respawn point or is missing info."));
@@ -147,5 +64,23 @@ public class BaseBeaconBlock extends Block {
             }
         }
         super.playerWillDestroy(level, pos, state, player);
+    }
+
+    // --- NEW METHOD TO HANDLE RIGHT-CLICK INTERACTION ---
+    @Override
+    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, net.minecraft.world.phys.BlockHitResult pHit) {
+        if (!pLevel.isClientSide) { // Server-side logic only
+            if (pPlayer instanceof ServerPlayer serverPlayer) {
+                MenuProvider containerProvider = new SimpleMenuProvider((id, inventory, player) -> {
+                    // This creates a standard 3x3 crafting grid menu
+                    // ContainerLevelAccess.create(pLevel, pPos) links it to the block's position
+                    return new CraftingMenu(id, inventory, ContainerLevelAccess.create(pLevel, pPos));
+                }, Component.translatable("container.crafting")); // Title for the crafting menu
+
+                serverPlayer.openMenu(containerProvider);
+                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BaseBeaconBlock] Opened crafting menu."));
+            }
+        }
+        return InteractionResult.SUCCESS; // Indicate that the interaction was handled
     }
 }
