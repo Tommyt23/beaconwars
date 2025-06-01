@@ -1,89 +1,68 @@
 // src/main/java/net/trashpanda/beaconwars/block/BaseBeaconBlock.java
 package net.trashpanda.beaconwars.block;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Blocks; // For accessing the vanilla crafting table block
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.inventory.ContainerLevelAccess;
-import net.minecraft.world.inventory.CraftingMenu;
 
-import net.minecraft.world.level.GameType; // If you still need this
-import net.minecraft.resources.ResourceKey; // If you still need this
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.trashpanda.beaconwars.ModItems.ModItems;
-import net.trashpanda.beaconwars.menu.AlwaysValidCraftingMenu;
-import net.trashpanda.beaconwars.util.PendingGamemodeChangeManager; // If you still need this
-import net.trashpanda.beaconwars.util.GamemodeStateManager; // If you still need this
-
-// (Other imports as needed)
+import javax.annotation.Nullable;
 
 public class BaseBeaconBlock extends Block {
-    public BaseBeaconBlock(Properties pProperties) {
-        super(pProperties);
+
+    public BaseBeaconBlock(Properties props) {
+        super(props);
+    }
+
+//    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable Player placer, @Nullable net.minecraft.world.item.ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+
+        if (!level.isClientSide && placer instanceof ServerPlayer serverPlayer) {
+            BlockPos respawnPos = pos.above(); // ensure player spawns on top
+
+            serverPlayer.setRespawnPosition(
+                    serverPlayer.level().dimension(),
+                    respawnPos,
+                    0.0f,
+                    true,  // force
+                    false  // don't notify (we can send custom msg)
+            );
+
+            serverPlayer.sendSystemMessage(Component.literal("Your respawn point has been set to the Beacon Block!"));
+            System.out.println("DEBUG: Respawn point set at " + respawnPos + " for " + serverPlayer.getName().getString());
+        }
     }
 
     @Override
-    public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        if (player instanceof ServerPlayer serverPlayer) {
-            System.out.println("DEBUG: [BeaconBlock] playerWillDestroy called for block at " + pos.toString() + " by player " + serverPlayer.getName().getString());
-
-            if (GamemodeStateManager.isBeaconWarsGamemodeActive()) {
-                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Beacon Wars Gamemode is ACTIVE. Checking spawn point."));
-
-                if (!level.isClientSide) {
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Server-side code executing."));
-
-                    ResourceKey<Level> respawnDim = serverPlayer.getRespawnDimension();
-                    BlockPos respawnPos = serverPlayer.getRespawnPosition();
-
-                    if (respawnDim != null && respawnDim == level.dimension() &&
-                            respawnPos != null && respawnPos.equals(pos)) {
-
-                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed IS player's current respawn point."));
-                        serverPlayer.setRespawnPosition(null, null, 0.0F, false, false);
-                        serverPlayer.displayClientMessage(Component.translatable("block.minecraft.clear_spawn"), false);
-
-                        PendingGamemodeChangeManager.addPendingChange(serverPlayer, GameType.SPECTATOR);
-                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Called addPendingChange."));
-                    } else {
-                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Block being destroyed is NOT player's current respawn point or is missing info."));
-                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnDim: " + (respawnDim != null ? respawnDim.location() : "N/A") + ", CurrentDim: " + level.dimension().location()));
-                        serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] RespawnPos: " + (respawnPos != null ? respawnPos.toString() : "N/A") + ", CurrentPos: " + pos.toString()));
-                    }
-                } else {
-                    serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Client-side code (not processing spawn logic)."));
-                }
-            } else {
-                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BeaconBlock] Beacon Wars Gamemode is INACTIVE. Skipping special logic."));
-            }
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!level.isClientSide) {
+            player.sendSystemMessage(Component.literal("This block acts like a crafting table!"));
+            // TODO: open your custom GUI or crafting screen here
         }
-        super.playerWillDestroy(level, pos, state, player);
+        return InteractionResult.SUCCESS;
     }
-    // --- NEW METHOD TO HANDLE RIGHT-CLICK INTERACTION ---
-    @Override
-    public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, net.minecraft.world.phys.BlockHitResult pHit) {
-        if (!pLevel.isClientSide) { // Server-side logic only
-            if (pPlayer instanceof ServerPlayer serverPlayer) {
-                MenuProvider containerProvider = new SimpleMenuProvider((id, inventory, player) -> {
-                    // This creates a standard 3x3 crafting grid menu
-                    // ContainerLevelAccess.create(pLevel, pPos) links it to the block's position
-                    return new AlwaysValidCraftingMenu(id, inventory, ContainerLevelAccess.create(pLevel, pPos));
-                }, Component.translatable("container.crafting")); // Title for the crafting menu
 
-                serverPlayer.openMenu(containerProvider);
-                serverPlayer.sendSystemMessage(Component.literal("DEBUG: [BaseBeaconBlock] Opened crafting menu."));
-            }
-        }
-        return InteractionResult.SUCCESS; // Indicate that the interaction was handled
+//    @Override
+    public boolean isPossibleToRespawnInThis(BlockState state, Level world, BlockPos pos) {
+        return true; // This tells Minecraft "Yes, you can respawn here"
+    }
+
+//    @Override
+    public boolean isBed(BlockState state, Level world, BlockPos pos, @Nullable Entity entity) {
+        return true;
     }
 }
