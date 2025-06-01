@@ -48,7 +48,7 @@ public class BeaconWarsCommand {
                                                 0, // Amplifier: 0 for level I
                                                 false, // Ambient: false for non-ambient
                                                 false, // Show Particles: false for true invisibility
-                                                true   // Show Icon: true to show in HUD
+                                                false   // Show Icon: true to show in HUD
                                         );
                                         player.addEffect(invisibilityEffect);
                                         player.sendSystemMessage(Component.literal("You are now invisible for 10 minutes!"));
@@ -60,12 +60,22 @@ public class BeaconWarsCommand {
                                                 durationTicks,
                                                 4, // Amplifier: 4 for level V (makes player almost invulnerable)
                                                 false, // Ambient
-                                                true,  // Show Particles: true (can be set to false if desired, but less visible)
-                                                true   // Show Icon
+                                                false,  // Show Particles: true (can be set to false if desired, but less visible)
+                                                false   // Show Icon
                                         );
                                         player.addEffect(resistanceEffect);
                                         player.sendSystemMessage(Component.literal("You are now invulnerable for 10 minutes!"));
                                         System.out.println("DEBUG: [BeaconWarsCommand] Applied Damage Resistance to " + player.getName().getString());
+
+                                        MobEffectInstance slowFalling = new MobEffectInstance(
+                                                MobEffects.SLOW_FALLING,
+                                                600,
+                                                3,
+                                                false,
+                                                false,
+                                                false
+                                        );
+                                        player.addEffect(slowFalling);
                                     }
                                     // --- END NEW LOGIC ---
 
